@@ -1,0 +1,8 @@
+- player must walk towards the seeds pick them up, they disappear
+- player heads to plant, when the player presses space they plant the 9 seeds 
+- there is a timer displayed on the bar on top, the player must complete this in (20 seconds) 
+- when the player succeeds display this win screen then add night cycle background and battle mp3 
+
+
+
+
