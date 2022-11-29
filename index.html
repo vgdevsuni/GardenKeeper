@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=PT+Sans:ital@1&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Marhey:wght@300&family=PT+Sans:ital@1&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=VT323:wght@300&family=PT+Sans:ital@1&display=swap');
+
+
+    /*CSS for the canvas style*/
+canvas {
+    position: relative;
+    left: 50%;
+    transform: translate(-50%,50%);
+    border:3px double #d3d3d3;
+    background-color: #f1f1f1;
+   
+}
+ /*CSS for the header style (probably wont use)*/
+h1{
+    position: absolute;
+    font-family: 'VT232';
+    font-size: 16px;
+    margin-left: 72%;
+    top: 15.5%;
+    
+    
+}
+/*CSS for the body style*/
+body{
+    background-color: rgba(241, 245, 205, 0.438);
+    overflow:hidden;
+}
+</style>
+</head>
+
+
+
+
+<body onload="startGame()">
+
+</body>
+
+<script>
+    // ALL ASSETS
+    let bg1 = new Image();
+    bg1.src = "./assets/bg1.png";
+
+    // Let's load our player's assets  (Morning): 
+    let playerleft = new Image();
+    playerleft.src = "./Morning1Assets/walkleft.png";
+    let playerright = new Image();
+    playerright.src = "./Morning1Assets/walkright.png";
+    let playerfront = new Image();
+    playerfront.src = "./Morning1Assets/walkfront.png";
+    let playerback = new Image();
+    playerback.src = "./Morning1Assets/walkback.png";
+
+    // Let's load our player's assets  (Night): 
+    let playerleftNight = new Image();
+    playerleftNight.src = "./Night1Assets/LeftNight.png";
+    let playerrightNight = new Image();
+    playerrightNight.src = "./Night1Assets/RightNight.png";
+    let playerfrontNight = new Image();
+    playerfrontNight.src = "./Night1Assets/AxeFront.png";
+    let playerbackNight = new Image();
+    playerbackNight.src = "./Night1Assets/BackNight.png"
+
+    // Player with the axe : 
+    let playerleftAxe = new Image();
+    playerleftAxe.src = "./Night1Assets/leftaxe.png";
+    let playerrightAxe = new Image();
+    playerrightAxe.src = "./Night1Assets/AxeRight.png";
+    let playerbackAxe = new Image();
+    playerbackAxe.src = "./Night1Assets/AxeBack.png";
+    // Enemy image : 
+    let slimeImg = new Image();
+    slimeImg.src = `./Night1Assets/slime.png`
+    let slimeWidth = 147.25;
+    let slimeHeight = 158;
+    let frameX2 = 0;
+    let framesForSlime = 3;
+    // Axe images : 
+    let axeImg = new Image();
+    axeImg.src = "./Night1Assets/Axe.png"
+
+    let imgtxt2 = new Image();
+    imgtxt2.src = "./assets/imgtxt2.png";
+    let victoryBg = new Image();
+    victoryBg.src = "./Night1Assets/lvlcomplete.png";
+
+    // Images for touch buttons :
+    let touchButton = new Image();
+    touchButton.src = "./arrows/button.png";
+    let touchArrows = new Image();
+    touchArrows.src = "./arrows/arrows.png";
+
+    // AUDIO OBJECTS
+    var mapAudio = new Audio("./assets/map.wav");
+    var nightAudio = new Audio("./assets/battle.mp3");
+    var clickAudio = new Audio("./assets/click.wav");
+    var victoryAudio = new Audio("./assets/victory.wav");
+  
+
+    // All of our levels : 
+    let currentLevel = 0;
+    let Level1 = 1;
+    let Level2 = 2;
+    let showVictoryScene = 3;
+    // SPLASH SCREEN OBJECTS
+    var myBackground;
+    var imgtxt;
+
+    // Let's make a timer element :
+    let timer = 60;
+
+    // SPLASH SCREEN FUNCTION TO START GAME
+    function startGame() {
+        myBackground = new component(800, 300, "./assets/empty.png", 0, 0, "background");
+        imgtxt = new component(800, 300, "./assets/imgtxt.png", 0, 0, "image");
+        myGameArea.start();
+    }
+
+    // Our player variables (Morning): 
+    let playerImgWidth = 250;
+    let playerImgHeight = 225;
+    let frameX = 0;
+    let frameY = 0;
+    let framesForPlayer = 3;
+    let gameFrame = 0;
+    let staggerFrames = 7;
+    let keys = {
+        arrowRight: { pressed: false },
+        arrowLeft: { pressed: false },
+        arrowUp: { pressed: false },
+        arrowDown: { pressed: false }
+    }
+    let lastKey = "";
+    let PLAYER_SPEED = 2.5;
+    let animate = false;
+    let animateNightPlayer = false;
+    let seedCountForPlayer = 1;
+    let transition = false;
+    let opac = 1;
+    // Our Player Variables (Night) : 
+    let playerImgWidthNight = 50.25;
+    let playerImgHeightNight = 46;
+
+
+    // Some utility functions are here : 
+
+    // Returns true if you're on a mobile device : 
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    // Takes a circle and rectangle's coordinates and tells if they are colliding : 
+    function pointRectDist(px, py, rx, ry, rwidth, rheight) {
+        if (px >= rx &&         // right of the left edge AND
+            px <= rx + rwidth &&    // left of the right edge AND
+            py >= ry &&         // below the top AND
+            py <= ry + rheight) // above the bottom
+        {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    // Allows random intervals 
+    function randomIntFromInterval(min, max) {
+        return Math.floor(Math.random() * (max - min + 1) + min);
+    }
+    // Our Player Class is here : 
+    class Player {
+        constructor(img, width, height, dx, dy) {
+            this.img = img;
+            this.x = 300;
+            this.y = 150;
+            this.width = width;
+            this.height = height;
+            this.dx = dx;
+            this.dy = dy;
+        }
+        spawn() {
+            if (currentLevel == Level1) {
+                myGameArea.context.drawImage(this.img, frameX * playerImgWidth, frameY * playerImgHeight, playerImgWidth, playerImgHeight, this.x, this.y, this.width, this.height);
+            }
+            else if (currentLevel == Level2) {
+                myGameArea.context.drawImage(this.img, frameX * playerImgWidthNight, frameY * playerImgHeightNight, playerImgWidthNight, playerImgHeightNight, this.x, this.y, this.width, this.height);
+            }
+            this.x += this.dx;
+            this.y += this.dy;
+        }
+    }
+
+    let player = new Player(playerleft, 45, 45, 0, 0);
+    let playerofNight = new Player(playerfrontNight, 45, 45, 0, 0)
+
+    // Our Pool class : 
+    let poolImg = new Image();
+    poolImg.src = "./Morning1Assets/water.png";
+    class Pool {
+        constructor() {
+            this.x = 380;
+            this.y = 65;
+            this.width = 60;
+            this.height = 80;
+        }
+        update() {
+            myGameArea.context.drawImage(poolImg, this.x, this.y, this.width, this.height);
+        }
+    }
+
+    let pool = new Pool();
+
+    // Our Seed class : 
+    let seeds = [];
+    let seedBasketImg = new Image();
+    seedBasketImg.src = "./Morning1Assets/seeds.png";
+    class Basket {
+        constructor(x, y, amount) {
+            this.x = x;
+            this.y = y;
+            this.width = 50;
+            this.height = 50;
+            this.amount = amount;
+        }
+        update() {
+            myGameArea.context.font = "20px VT323";
+        myGameArea.context.textAlign = "center";
+        myGameArea.context.fillText(this.amount, this.x + this.width / 2, this.y);
+        myGameArea.context.drawImage(seedBasketImg,this.x,this.y,this.width,this.height);
+        }
+    }
+    let x;
+    let y;
+    let amounts = ["2", "3", "4"];
+    let amount = "";
+    // Making three seedsBasket : 
+    for (let i = 0; i < 3; i++) {
+        if (i == 0) {
+            x = randomIntFromInterval(70, 200);
+            y = randomIntFromInterval(190, 250);
+            amount = amounts[Math.floor(Math.random() * amounts.length)];
+        }
+        else if (i == 1) {
+            x = randomIntFromInterval(430, 580);
+            y = randomIntFromInterval(180, 220);
+            if (amount == "2" || amount == "3" || amount == "4") {
+                amounts.splice(amounts.indexOf(amount), 1);
+            }
+            amount = amounts[Math.floor(Math.random() * amounts.length)];
+        }
+        else {
+            x = randomIntFromInterval(pool.x + pool.width + 20, pool.x + pool.width + 60);
+            y = 100;
+            if (amount == "2" || amount == "3" || amount == "4") {
+                amounts.splice(amounts.indexOf(amount), 1);
+            }
+            amount = amounts[Math.floor(Math.random() * amounts.length)]
+        }
+        seeds.push(new Basket(x, y, amount));
+    }
+
+
+    // Loading all the ground images :
+    let grounds = [];
+    for (let i = 0; i < 10; i++) {
+        grounds[i] = new Image();
+        grounds[i].src = `./Morning1Assets/planted${i}.png`;
+    }
+    let groundImgNight = new Image();
+    groundImgNight.src = `./Night1Assets/plantednight.png`;
+
+    class Ground {
+        constructor() {
+            this.x = 125;
+            this.y = 50;
+            this.width = 115;
+            this.height = 115;
+            this.i = 0;
+        }
+        update() {
+            myGameArea.context.drawImage(grounds[this.i], this.x, this.y, this.width, this.height);
+        }
+    }
+    let ground = new Ground();
+    let groundForLevel2 = new Ground();
+
+    // LOOPING SPLASH SCREEN BACKGROUND
+    var myGameArea = {
+        canvas: document.createElement("canvas"),
+        start: function () {
+
+            this.canvas.width = 800;
+            this.canvas.height = 300;
+
+
+            this.context = this.canvas.getContext("2d");
+            document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+            this.frameNo = 0;
+            this.interval = setInterval(updateGameArea, 20);
+        },
+        clear: function () {
+            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        },
+        stop: function () {
+            clearInterval(this.interval);
+        }
+    }
+
+    function component(width, height, color, x, y, type) {
+        this.type = type;
+        if (type == "image" || type == "background") {
+            this.image = new Image();
+            this.image.src = color;
+        }
+        this.width = width;
+        this.height = height;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.x = x;
+        this.y = y;
+        this.update = function () {
+            ctx = myGameArea.context;
+            if (type == "image" || type == "background") {
+                ctx.drawImage(this.image,
+                    this.x,
+                    this.y,
+                    this.width, this.height);
+                if (type == "background") {
+                    ctx.drawImage(this.image,
+                        this.x + this.width,
+                        this.y,
+                        this.width, this.height);
+                }
+            } else {
+                ctx.fillStyle = color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+        }
+        this.newPos = function () {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            if (this.type == "background") {
+                if (this.x == -(this.width)) {
+                    this.x = 0;
+                }
+            }
+        }
+    }
+    // WHOLE CODE GOES HERE?
+    let pause = false;
+    let enterPressed = false;
+    let spacePressed = false;
+    let spacePress = false;
+    let stopInc = false;
+    let dothis = false;
+    let op = 1;
+    let opforLevel1 = 0;
+    let collision = false;
+    let collisionGround = false;
+    let bg2 = new Image();
+    bg2.src = "./Morning1Assets/nightbg.png";
+    let groundNightX = 125;
+    let groundNightY = 50;
+    let locations = [200, 400, 500, 650];
+    let slimes = [];
+    let dropOpacityForLevel2 = false;
+    let opacityForLev2 = 1;
+
+    //slime constructor
+    class Slime {
+        constructor(x, y, dx, dy) {
+            this.x = x;
+            this.y = y;
+            this.dx = dx;
+            this.dy = dy;
+            this.width = 25;
+            this.height = 25;
+        }
+        attack() {
+            myGameArea.context.drawImage(slimeImg, frameX2 * slimeWidth, frameY * slimeHeight, slimeWidth, slimeHeight, this.x, this.y, this.width, this.height);
+            this.x += this.dx;
+            this.y += this.dy;
+        }
+    }
+
+    let particles = [];
+    class Particle {
+        constructor(x, y, radius, dx, dy, color) {
+            this.x = x;
+            this.y = y;
+            this.radius = radius
+            this.dx = dx;
+            this.dy = dy;
+            this.color = color
+        }
+        makeParticle() {
+            myGameArea.context.beginPath()
+            myGameArea.context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+            myGameArea.context.fillStyle = "rgb(99, 214, 147)";
+            myGameArea.context.fill()
+            myGameArea.context.stroke()
+            myGameArea.context.closePath();
+        }
+        spawnParticles() {
+            this.makeParticle();
+            this.x += this.dx;
+            this.x -= this.dy;
+            this.y -= this.dy;
+            this.x += this.dy;
+            if (this.radius > 0) {
+                this.radius -= 0.05
+            }
+            if (this.radius <= 0 || this.radius < 1 || this.x > innerWidth || this.y > innerHeight) {
+                particles.splice(particles.indexOf(this), 1)
+            }
+        }
+    }
+
+    class Axe {
+        constructor() {
+            this.x = player.x - 20;
+            this.y = player.y + 5;
+            this.width = 80;
+            this.height = 30;
+        }
+        use() {
+            myGameArea.context.drawImage(axeImg, this.x, this.y, this.width, this.height);
+        }
+    }
+    // Making our moving controls :
+    // Adding the button controls for movement :    
+    class Controls {
+        constructor() {
+            this.x = 60;
+            this.y = 200;
+            this.width = 100;
+            this.height = 100;
+        }
+        draw() {
+            // myGameArea.context.drawImage(touchArrows, 60, 200, 100, 100); 
+            myGameArea.context.drawImage(touchArrows, this.x, this.y, this.width, this.height);
+        }
+    }
+    let controls = new Controls();
+    let axe = new Axe();
+    let slimeCollisionWithPlayer = false;
+    let buttonX;
+    let buttonY;
+    let buttonWidth;
+    let buttonHeight;
+    let pointRectCollision = false;
+    let sp = false;
+    let moveSlimes = true;
+    function updateGameArea() {
+        // Starting screen : 
+        if (currentLevel == 0) {
+            // SPLASH BACKGROUND LOOPING 
+            myBackground.speedX = -1;
+            myBackground.newPos();
+            myBackground.update();
+            //SPLASH IMAGE STATIC 
+            imgtxt.newPos();
+            imgtxt.update();
+            // If there is a touch event : 
+            if (touchStart) {
+                myGameArea.context.drawImage(imgtxt2, 0, 0);
+                myGameArea.canvas.style.opacity = op;
+                if (!stopInc) {
+                    op -= 0.005;
+                }
+                if (op <= 0.1) {
+                    stopInc = true;
+                }
+                if (!pause) {
+                    mapAudio.play();
+                }
+                if (stopInc) {
+                    enterPressed = true;
+                    currentLevel = Level1;
+                }
+            }
+            else {
+                if (spacePressed) {
+                    myGameArea.context.drawImage(imgtxt2, 0, 0);
+                    if (enterPressed) {
+                        myGameArea.canvas.style.opacity = op;
+                        dothis = true;
+                    }
+                    if (!stopInc && dothis) {
+                        op -= 0.005;
+                    }
+                    if (op <= 0.1) {
+                        stopInc = true;
+                    }
+                    if (!pause) {
+                        mapAudio.play();
+                    }
+                    if (stopInc) {
+                        currentLevel = Level1;
+                    }
+                }
+            }
+
+        }
+        // Level 1 : 
+        else if (currentLevel == Level1 && op <= 0.1 && enterPressed) {
+            // Putting our timer in the document : 
+            // document.body.appendChild(h1);
+            stopInc = true;
+            myGameArea.canvas.style.opacity = opforLevel1;
+            opforLevel1 += 0.009;
+            myGameArea.context.clearRect(0, 0, myGameArea.canvas.width, myGameArea.canvas.height);
+            // Drawing the background : 
+            myGameArea.context.drawImage(bg1, 0, 0);
+            // Now spawning our player and other things : 
+            seeds.forEach((eachSeedBasket) => {
+                eachSeedBasket.update();
+            })
+            ground.update();
+            pool.update();
+            player.spawn();
+            // Setting player's velocity x and y to 0 : 
+            player.dx = 0;
+            player.dy = 0;
+            // Handling keyboard input here : 
+            if (keys.arrowRight.pressed && lastKey == "ArrowRight") {
+                player.dx = PLAYER_SPEED;
+            }
+            else if (keys.arrowLeft.pressed && lastKey == "ArrowLeft") {
+                player.dx = -PLAYER_SPEED;
+            }
+            else if (keys.arrowUp.pressed && lastKey == "ArrowUp") {
+                player.dy = -PLAYER_SPEED;
+            }
+            else if (keys.arrowDown.pressed && lastKey == "ArrowDown") {
+                player.dy = PLAYER_SPEED;
+            }
+            // Animating our player : 
+            if (gameFrame % staggerFrames == 0 && animate) {
+                if (frameX < framesForPlayer) {
+                    frameX++;
+                }
+                else {
+                    frameX = 0;
+                }
+            }
+            gameFrame++;
+            // All of our collision detection code is here : 
+            // Player and Pool collision detection : 
+            if (
+                player.x + player.dx < pool.x + pool.width && player.x + player.width + player.dx > pool.x + 20 && player.y + player.dy < pool.y + pool.height - 30 && player.height + player.y + player.dy > pool.y + 20
+            ) {
+                player.dx = 0;
+                player.dy = 0;
+            }
+            // Player and Ground collision detection : 
+            if (
+                player.x + player.dx < ground.x + ground.width - 10 && player.x + player.width + player.dx > ground.x + 30 && player.y + player.dy < ground.y + ground.height - 30 && player.height + player.y + player.dy > ground.y + 10
+            ) {
+                collisionGround = true;
+                player.dx = 0;
+                player.dy = 0;
+            }
+            else {
+                collisionGround = false;
+            }
+            console.log(collisionGround);
+            // Player and seeds collision detection : 
+            seeds.forEach((seedsBasket) => {
+                if (player.x + player.dx < seedsBasket.x + seedsBasket.width - 10 && player.x + player.width + player.dx > seedsBasket.x + 30 && player.y + player.dy < seedsBasket.y + seedsBasket.height - 30 && player.height + player.y + player.dy > seedsBasket.y + 10) {
+                    collision = true;
+                }
+                if (
+                    player.x + player.dx < seedsBasket.x + seedsBasket.width - 10 && player.x + player.width + player.dx > seedsBasket.x + 30 && player.y + player.dy < seedsBasket.y + seedsBasket.height - 30 && player.height + player.y + player.dy > seedsBasket.y + 10 && spacePress && seedsBasket.amount > 0
+                ) {
+                    seedCountForPlayer++;
+                    seedsBasket.amount--;
+                    player.dx = 0;
+                    player.dy = 0;
+                    spacePress = false;
+                }
+                if (seedsBasket.amount == 0) {
+                    seeds.splice(seeds.indexOf(seedsBasket), 1);
+                }
+            })
+            if (transition) {
+                myGameArea.canvas.style.opacity = opac;
+                opac -= 0.008;
+            }
+            if (opac <= 0) {
+                timer = 30;
+                currentLevel = Level2
+            }
+            // Displaying the three headings in the top :
+            // Text on the left : 
+            myGameArea.context.fillStyle = "white"
+            myGameArea.context.font = "18px VT323";
+            myGameArea.context.fillText("Day 1 - Morning", 100, 30);
+            // Text on the center : 
+            myGameArea.context.font = "18px VT323";
+            myGameArea.context.fillText("Plant the Crops !", myGameArea.canvas.width / 2 - 30, 30);
+            // Text on the right : 
+            myGameArea.context.font = "18px VT323";
+            myGameArea.context.fillText("Time Remaining :", myGameArea.canvas.width / 2 + 260, 30);
+            // Our Timer : 
+            myGameArea.context.font = "18px VT323";
+            myGameArea.context.fillText(timer, myGameArea.canvas.width / 2 + 340 , 30);
+
+            // If the browser is open in mobile device then display these touch buttons :  
+            if (isMobile()) {
+                buttonX = myGameArea.canvas.width - 100;
+                buttonY = 200;
+                buttonWidth = 50;
+                buttonHeight = 50;
+                pointRectCollision = true;
+                // Adding the button (space in keyboard): 
+                myGameArea.context.drawImage(touchButton, buttonX, buttonY, buttonWidth, buttonHeight);
+                controls.draw();
+            }
+        }
+
+        else if (currentLevel == Level2) {
+            nightAudio.play();
+            mapAudio.pause();
+            transition = false;
+            myGameArea.canvas.style.opacity = 1;
+            // Drawing the night background : 
+            myGameArea.context.drawImage(bg2, 0, 0);
+            // Spawning the ground here :
+            myGameArea.context.drawImage(groundImgNight, groundNightX, groundNightY, 115, 115);
+            // Spawning our axe : 
+            // axe.use();
+            axe.x = playerofNight.x - 20;
+            axe.y = playerofNight.y + 5;
+            // Spawning our player : 
+            playerofNight.spawn();
+            // Spawning our enemies : 
+            for (let eachSlime of slimes) {
+                eachSlime.attack();
+                let angle = Math.atan2((groundNightY + ground.height - 30) - eachSlime.y, (groundNightX + 25) - eachSlime.x);
+                let dx = Math.cos(angle) * Math.random();
+                let dy = Math.sin(angle) * Math.random();
+                if(moveSlimes){
+                    eachSlime.dx = dx;
+                    eachSlime.dy = dy;
+                }
+            }
+            particles.forEach(particle => {
+                particle.spawnParticles();
+            })
+            // Setting player's velocity x and y to 0 : 
+            playerofNight.dx = 0;
+            playerofNight.dy = 0;
+            // Handling keyboard input here : 
+            if (keys.arrowRight.pressed && lastKey == "ArrowRight") {
+                playerofNight.dx = PLAYER_SPEED;
+            }
+            else if (keys.arrowLeft.pressed && lastKey == "ArrowLeft") {
+                playerofNight.dx = -PLAYER_SPEED;
+            }
+            else if (keys.arrowUp.pressed && lastKey == "ArrowUp") {
+                playerofNight.dy = -PLAYER_SPEED;
+            }
+            else if (keys.arrowDown.pressed && lastKey == "ArrowDown") {
+                playerofNight.dy = PLAYER_SPEED;
+            }
+            // Animating our player : 
+            if (gameFrame % staggerFrames == 0 && animateNightPlayer) {
+                if (frameX < framesForPlayer) {
+                    frameX++;
+                }
+                else {
+                    frameX = 0;
+                }
+            }
+            // Animating our slime : 
+            if (gameFrame % staggerFrames == 0) {
+                if (frameX2 < framesForSlime) {
+                    frameX2++;
+                }
+                else {
+                    frameX2 = 0;
+                }
+            }
+            gameFrame++;
+            // All of our collsion detections for level 2 are here : 
+            // Player and ground collision detection : 
+            if (
+                playerofNight.x + playerofNight.dx < groundNightX + ground.width && playerofNight.x + playerofNight.width + playerofNight.dx > groundNightX + 20 && playerofNight.y + playerofNight.dy < groundNightY + ground.height - 10 && playerofNight.height + playerofNight.y + playerofNight.dy > groundNightY
+            ) {
+                playerofNight.dx = 0;
+                playerofNight.dy = 0;
+            }
+            // Player and Slime collision detection :
+            slimes.forEach(slime => {
+                if (
+                    playerofNight.x - 20 < slime.x + slime.width && playerofNight.x + playerofNight.width - 10 > slime.x && playerofNight.y < slime.y + slime.height && playerofNight.height + playerofNight.y > slime.y && sp
+                ) {
+                    for (let i = 0; i < 10; i++) {
+                        let dx = randomIntFromInterval(-25, 25);
+                        let dy = randomIntFromInterval(-20, 20);
+                        particles.push(new Particle(slime.x, slime.y, 3, dx, dy, "red"));
+                    }
+                    slimes.splice(slimes.indexOf(slime), 1);
+                }
+                // Slime and ground collision detection : 
+                if (slime.x - 20 < groundNightX + ground.width && slime.x + slime.width - 10 > groundNightX && slime.y < groundNightY + ground.height && slime.height + slime.y > groundNightY) {
+                    location.reload();
+                }
+            })
+            // Displaying the three headings in the top :
+            // Text on the left : 
+            myGameArea.context.fillStyle = "white"
+            myGameArea.context.font = "18px VT323";
+            myGameArea.context.fillText("Day 1 - Night", 100, 30);
+            // Text on the center : 
+            myGameArea.context.font = "18px VT323";
+            myGameArea.context.fillText("Protect the Crops !", myGameArea.canvas.width / 2 - 30, 30);
+            // Text on the right : 
+            myGameArea.context.font = "18px VT323";
+            myGameArea.context.fillText("Time Remaining :", myGameArea.canvas.width / 2 + 260, 30);
+            // Our Timer : 
+            myGameArea.context.font = "18px VT323";
+            myGameArea.context.fillText(timer, myGameArea.canvas.width / 2 + 340 , 30);
+
+            if (slimes.length < 4) {
+                let slimeX = locations[Math.floor(Math.random() * locations.length)];
+                let slimeY = 300;
+                let angle = Math.atan2((groundNightY + ground.height - 30) - slimeY, (groundNightX + 25) - slimeX);
+                let dx = Math.cos(angle) * Math.random();
+                let dy = Math.sin(angle) * Math.random();
+                slimes.push(new Slime(slimeX, slimeY, dx, dy));
+            }
+            myGameArea.canvas.style.opacity = opacityForLev2;
+            if (dropOpacityForLevel2) {
+                opacityForLev2 -= 0.005;
+                if (opacityForLev2 <= 0.1) {
+                    slimes.forEach((slime)=>{
+                        slime.dx = 0;
+                        slime.dy = 0;
+                        moveSlimes = false;
+                        timer = 0;
+                    })
+                    currentLevel = showVictoryScene;
+                    nightAudio.pause();
+                    victoryAudio.play();
+                }
+            }
+            // If the browser is open in mobile device then display these touch buttons :  
+            if (isMobile()) {
+                buttonX = myGameArea.canvas.width - 100;
+                buttonY = 200;
+                buttonWidth = 50;
+                buttonHeight = 50;
+                pointRectCollision = true;
+                // Adding the button (space in keyboard): 
+                myGameArea.context.drawImage(touchButton, buttonX, buttonY, buttonWidth, buttonHeight);
+                controls.draw();
+            }
+        }
+
+        else if (currentLevel == showVictoryScene) {
+            myGameArea.canvas.style.opacity = opacityForLev2;
+            opacityForLev2 += 0.005;
+            myGameArea.context.drawImage(victoryBg, 0, 0);
+        }
+        // If the browser is open in mobile then do not center the canvas :  
+        if (isMobile()) {
+            myGameArea.canvas.classList.remove("center");
+        }
+        // if it is open is pc or laptop then center the canvas ; 
+        else {
+            myGameArea.canvas.classList.add("center");
+        }
+    }
+
+    // Listening for keydown event : 
+    window.addEventListener("keydown", btnpress);
+    // Keydown event handler function : 
+    function btnpress(evt) { //this is our event handler func for keydown
+        switch (evt.key) {
+            case " ":
+                animateNightPlayer = true;
+                spacePress = true;
+                sp = true;
+                if (lastKey == "ArrowRight") {
+                    playerofNight.img = playerrightAxe;
+                    playerofNight.width = 55;
+                    playerImgWidthNight = 193.5;
+                    playerImgHeightNight = 125;
+                }
+                else if (lastKey == "ArrowLeft") {
+                    playerofNight.img = playerleftAxe;
+                    playerofNight.width = 55;
+                    playerImgWidthNight = 196;
+                    playerImgHeightNight = 135;
+                }
+                else if (lastKey == "ArrowUp") {
+                    playerofNight.width = 60;
+                    playerImgWidthNight = 218.75;
+                    playerImgHeightNight = 146;
+                    playerofNight.img = playerbackAxe;
+                }
+                break;
+            case "Enter": //enter
+                if (currentLevel != 2) {
+                    mapAudio.play();
+                    clickAudio.play();
+                    spacePressed = true;
+                    enterPressed = true;
+                    pause = true;
+                }
+                break;
+            case "ArrowUp":
+                if (currentLevel == Level1) {
+                    lastKey = "ArrowUp"
+                    keys.arrowUp.pressed = true;
+                    player.img = playerback;
+                    animate = true;
+                }
+                else if (currentLevel == Level2) {
+                    lastKey = "ArrowUp"
+                    keys.arrowUp.pressed = true;
+                    playerImgWidthNight = 184.75;
+                    playerImgHeightNight = 176;
+                    playerofNight.img = playerbackNight;
+                    animateNightPlayer = true;
+                }
+                break;
+            case "ArrowRight":
+                if (currentLevel == Level1) {
+                    lastKey = "ArrowRight"
+                    keys.arrowRight.pressed = true;
+                    player.img = playerright;
+                    animate = true;
+                }
+                else if (currentLevel == Level2) {
+                    lastKey = "ArrowRight"
+                    keys.arrowRight.pressed = true;
+                    playerImgWidthNight = 180.25;
+                    playerImgHeightNight = 166;
+                    playerofNight.img = playerleftNight;
+                    animateNightPlayer = true;
+                }
+                break;
+            case "ArrowLeft":
+                if (currentLevel == Level1) {
+                    lastKey = "ArrowLeft"
+                    keys.arrowLeft.pressed = true;
+                    player.img = playerleft;
+                    animate = true;
+                }
+                else if (currentLevel == Level2) {
+                    lastKey = "ArrowLeft"
+                    keys.arrowLeft.pressed = true;
+                    playerImgWidthNight = 186.25;
+                    playerImgHeightNight = 166;
+                    playerofNight.img = playerrightNight;
+                    animateNightPlayer = true;
+                }
+                break;
+            case "ArrowDown":
+                if (currentLevel == Level1) {
+                    lastKey = "ArrowDown";
+                    keys.arrowDown.pressed = true;
+                    player.img = playerfront;
+                    animate = true;
+                }
+                else if (currentLevel == Level2) {
+                    lastKey = "ArrowDown";
+                    keys.arrowDown.pressed = true;
+                    playerImgWidthNight = 50.25;
+                    playerImgHeightNight = 46;
+                    playerofNight.img = playerfrontNight;
+                    animateNightPlayer = true;
+                }
+                break;
+        }
+    }
+
+    // Listening for keyup event here : 
+    window.addEventListener("keyup", btnpress2);
+
+    // Keyup event handler function : 
+    function btnpress2(evt) { //this is our event handler for keyup
+        switch (evt.key) {
+            case " ":
+                animateNightPlayer = false;
+                spacePress = false;
+                sp = false;
+                if (lastKey == "ArrowRight") {
+                    playerofNight.width = 45;
+                    playerImgWidthNight = 180.25;
+                    playerImgHeightNight = 166;
+                    playerofNight.img = playerleftNight;
+                }
+                else if (lastKey == "ArrowLeft") {
+                    playerofNight.width = 45;
+                    playerImgWidthNight = 186.25;
+                    playerImgHeightNight = 166;
+                    playerofNight.img = playerrightNight;
+                }
+                else if (lastKey == "ArrowUp") {
+                    playerofNight.width = 45;
+                    playerImgWidthNight = 184.75;
+                    playerImgHeightNight = 176;
+                    playerofNight.img = playerbackNight;
+                }
+                if (collision) {
+                    spacePress = true;
+                }
+                else {
+                    spacePress = false;
+                }
+                if (collisionGround && ground.i < 9 && seedCountForPlayer >= 2) {
+                    seedCountForPlayer--;
+                    ground.i++;
+                }
+                if (seedCountForPlayer == 1 && ground.i == 9) {
+                    transition = true;
+                }
+                break;
+            case "ArrowUp":
+                keys.arrowUp.pressed = false;
+                animate = false;
+                if (currentLevel == Level2) {
+                    animateNightPlayer = false;
+                }
+                break;
+            case "ArrowRight":
+                keys.arrowRight.pressed = false;
+                animate = false;
+                if (currentLevel == Level2) {
+                    animateNightPlayer = false;
+                }
+                break;
+            case "ArrowLeft":
+                keys.arrowLeft.pressed = false;
+                animate = false;
+                if (currentLevel == Level2) {
+                    animateNightPlayer = false;
+                }
+                break;
+            case "ArrowDown":
+                keys.arrowDown.pressed = false;
+                animate = false;
+                if (currentLevel == Level2) {
+                    animateNightPlayer = false;
+                }
+                break;
+        }
+    }
+
+    let touchedButton = false;
+    let touchStart = false;
+    // Swipe Up / Down / Left / Right
+    let initialX = null;
+    let initialY = null;
+    // { passive: false }
+    // Let's make event listeners for touch events : 
+    window.addEventListener("touchstart", startTouch, false);
+    function startTouch(e) {
+        touchStart = true;
+        initialX = e.touches[0].clientX;
+        initialY = e.touches[0].clientY;
+        if (currentLevel == 0) {
+            clickAudio.play();
+        }
+        // This is button down event : (Consider it space in keyboard);
+        if (pointRectCollision) {
+            let px = e.changedTouches[0].pageX;
+            let py = e.changedTouches[0].pageY;
+            // If the button is being pressed : (This will run only once)
+            if (pointRectDist(px, py, buttonX, buttonY
+                , buttonWidth, buttonHeight)) {
+                touchedButton = true;
+                animateNightPlayer = true;
+                spacePress = true;
+                if (lastKey == "ArrowRight") {
+                    playerofNight.img = playerrightAxe;
+                    playerofNight.width = 55;
+                    playerImgWidthNight = 193.5;
+                    playerImgHeightNight = 125;
+                }
+                else if (lastKey == "ArrowLeft") {
+                    playerofNight.img = playerleftAxe;
+                    playerofNight.width = 55;
+                    playerImgWidthNight = 196;
+                    playerImgHeightNight = 135;
+                }
+                else if (lastKey == "ArrowUp") {
+                    playerofNight.width = 60;
+                    playerImgWidthNight = 218.75;
+                    playerImgHeightNight = 146;
+                    playerofNight.img = playerbackAxe;
+                }
+            }
+        }
+        else {
+            touchedButton = false;
+        }
+    }
+
+    window.addEventListener("touchmove", moveTouch, false);
+    function moveTouch(e) {
+        if (initialX === null) {
+            return;
+        }
+        if (initialY === null) {
+            return;
+        }
+
+        let currentX = e.touches[0].clientX;
+        let currentY = e.touches[0].clientY;
+
+        let diffX = initialX - currentX;
+        let diffY = initialY - currentY;
+
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+            // sliding horizontally
+            if (diffX > 0) {
+                if (currentLevel == Level1) {
+                    lastKey = "ArrowLeft"
+                    keys.arrowLeft.pressed = true;
+                    player.img = playerleft;
+                    animate = true;
+                }
+                else if (currentLevel == Level2) {
+                    lastKey = "ArrowLeft"
+                    keys.arrowLeft.pressed = true;
+                    playerImgWidthNight = 186.25;
+                    playerImgHeightNight = 166;
+                    playerofNight.img = playerrightNight;
+                    animateNightPlayer = true;
+                }
+                // swiped left
+            } else {
+                if (currentLevel == Level1) {
+                    lastKey = "ArrowRight"
+                    keys.arrowRight.pressed = true;
+                    player.img = playerright;
+                    animate = true;
+                }
+                else if (currentLevel == Level2) {
+                    lastKey = "ArrowRight"
+                    keys.arrowRight.pressed = true;
+                    playerImgWidthNight = 180.25;
+                    playerImgHeightNight = 166;
+                    playerofNight.img = playerleftNight;
+                    animateNightPlayer = true;
+                }
+                // swiped right
+            }
+        } else {
+            // sliding vertically
+            if (diffY > 0) {
+                if (currentLevel == Level1) {
+                    lastKey = "ArrowUp"
+                    keys.arrowUp.pressed = true;
+                    player.img = playerback;
+                    animate = true;
+                }
+                else if (currentLevel == Level2) {
+                    lastKey = "ArrowUp"
+                    keys.arrowUp.pressed = true;
+                    playerImgWidthNight = 184.75;
+                    playerImgHeightNight = 176;
+                    playerofNight.img = playerbackNight;
+                    animateNightPlayer = true;
+                }
+                // swipe up 
+            } else {
+                if (currentLevel == Level1) {
+                    lastKey = "ArrowDown";
+                    keys.arrowDown.pressed = true;
+                    player.img = playerfront;
+                    animate = true;
+                }
+                else if (currentLevel == Level2) {
+                    lastKey = "ArrowDown";
+                    keys.arrowDown.pressed = true;
+                    playerImgWidthNight = 50.25;
+                    playerImgHeightNight = 46;
+                    playerofNight.img = playerfrontNight;
+                    animateNightPlayer = true;
+                }
+                // swiped down
+            }
+        }
+        initialX = null;
+        initialY = null;
+        e.preventDefault();
+    }
+
+    window.addEventListener("touchend", (e) => {
+        keys.arrowRight.pressed = false;
+        keys.arrowUp.pressed = false;
+        keys.arrowDown.pressed = false;
+        keys.arrowLeft.pressed = false;
+        if (currentLevel == Level2) {
+            animateNightPlayer = false;
+        }
+        animate = false;
+        if (currentLevel == Level2) {
+            animateNightPlayer = false;
+        }
+        if (touchedButton) {
+            animateNightPlayer = false;
+            spacePress = false;
+            touchedButton = false;
+            if (lastKey == "ArrowRight") {
+                playerofNight.width = 45;
+                playerImgWidthNight = 180.25;
+                playerImgHeightNight = 166;
+                playerofNight.img = playerleftNight;
+            }
+            else if (lastKey == "ArrowLeft") {
+                playerofNight.width = 45;
+                playerImgWidthNight = 186.25;
+                playerImgHeightNight = 166;
+                playerofNight.img = playerrightNight;
+            }
+            else if (lastKey == "ArrowUp") {
+                playerofNight.width = 45;
+                playerImgWidthNight = 184.75;
+                playerImgHeightNight = 176;
+                playerofNight.img = playerbackNight;
+            }
+            if (collisionGround && ground.i < 9 && seedCountForPlayer >= 2) {
+                seedCountForPlayer--;
+                ground.i++;
+            }
+            if (seedCountForPlayer == 1 && ground.i == 9) {
+                transition = true;
+            }
+        }
+    })
+
+    let stopTimer = false;
+    setInterval(() => {
+        if (timer <= 0 && currentLevel == Level1) {
+            stopTimer = true;
+            location.reload();
+        }
+        if (timer <= 0 && currentLevel == Level2) {
+            dropOpacityForLevel2 = true;
+        }
+        if ((currentLevel == Level1 || currentLevel == Level2) && !stopTimer) {
+            timer--;
+        }
+    }, 1000)
+
+
+    // Making four slimes :
+    for (let i = 0; i < 4; i++) {
+        let x = locations[i];
+        let y = 300;
+        let angle = Math.atan2((groundNightY + ground.height - 30) - y, (groundNightX + 25) - x);
+        let dx = Math.cos(angle) * Math.random();
+        let dy = Math.sin(angle) * Math.random();
+        slimes.push(new Slime(x, y, dx, dy));
+    }
+
+</script>
+</body>
+</html>
